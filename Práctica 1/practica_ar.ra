@@ -1,0 +1,86 @@
+﻿--Realizado por Estíbaliz Busto y Lucía Latorre
+
+/abolish
+
+create table programadores(dni string primary key, nombre string, dirección string, teléfono string);
+insert into programadores values('1','Jacinto','Jazmín 4','91-8888888'); 
+insert into programadores values('2','Herminia','Rosa 4','91-7777777');
+insert into programadores values('3','Calixto','Clavel 3','91-1231231');
+insert into programadores values('4','Teodora','Petunia 3','91-6666666');
+
+create table analistas (dni string primary key, nombre string, dirección string, teléfono string);
+insert into analistas values('4','Teodora','Petunia 3','91-6666666');
+insert into analistas values('5','Evaristo','Luna 1','91-1111111');
+insert into analistas values('6','Luciana','Júpiter 2','91-8888888');
+insert into analistas values('7','Nicodemo','Plutón 3', NULL);
+
+create table distribución (códigopr string, dniemp string primary key, horas int, primary key (códigopr, dniemp));
+insert into distribución(códigopr, dniemp, horas) values('P1','1',10);
+insert into distribución(códigopr, dniemp, horas) values('P1','2',40);
+insert into distribución(códigopr, dniemp, horas) values('P1','4',5);
+insert into distribución(códigopr, dniemp, horas) values('P2','4',10);
+insert into distribución(códigopr, dniemp, horas) values('P3','1',10);
+insert into distribución(códigopr, dniemp, horas) values('P3','3',40);
+insert into distribución(códigopr, dniemp, horas) values('P3','4',5);
+insert into distribución(códigopr, dniemp, horas) values('P3','5',30);
+insert into distribución(códigopr, dniemp, horas) values('P4','4',20);
+insert into distribución(códigopr, dniemp, horas) values('P4','5',10);
+
+create table proyectos (código string primary key, descripción string, dnidir string);
+insert into proyectos(código, descripción, dnidir) values('P1','Nómina','4');
+insert into proyectos(código, descripción, dnidir) values('P2','Contabilidad','4');
+insert into proyectos(código, descripción, dnidir) values('P3','Producción','5');
+insert into proyectos(código, descripción, dnidir) values('P4','Clientes','5');
+insert into proyectos(código, descripción, dnidir) values('P5','Ventas','6');
+
+--Ejemplos
+--project códigopr (select dniemp='4' (distribución)); 
+--programadores union analistas; 
+--project nombre (select dni=dnidir (proyectos product analistas)); 
+--empleados := programadores union analistas; 
+--dnidirporempleados := (project dnidir (proyectos)) product empleados; 
+--datosdirproyecto := project nombre, dirección, teléfono (select dnidir = dni (dnidirporempleados));
+
+
+
+--1. DNI de todos los empleados. Esquema: vista1(dni). --Para mostrar las vistas /dbschema
+vista1(dni) := project dni(programadores union analistas);
+select true (vista1); 
+
+--2. DNI de los empleados que son a la vez programadores y analistas. Esquema: vista2(dni).
+-- Hemos hecho tres opciones
+--vista2 := project dni(programadores intersect analistas);
+--vista2(dni) := project dni(programadores njoin analistas);
+vista2(dni) := project programadores.dni(select programadores.dni = analistas.dni (programadores product analistas));
+select true (vista2);
+
+--3. DNI de los empleados sin trabajo (ni están asignados a proyectos ni son directores de ellos). Esquema: vista3(dni).
+dniempleados (dni) := project dni (programadores union analistas);
+vista3(dni) := dniempleados difference (project dniemp(distribución) union project dnidir(proyectos));
+select true (vista3);
+
+--4. Código de los proyectos sin analistas asignados. Esquema: vista4(código).
+vista4:= project código (proyectos) difference project códigopr(select dni=dniemp(analistas product distribución));
+select true (vista4);
+
+--5. DNI de los analistas que dirijan proyectos pero que no sean programadores. Esquema: vista5(dni).
+vista5(dni) := project dni (select dni=dnidir(proyectos product (analistas difference programadores)));
+select true (vista5);
+
+--6. Descripción de los proyectos con los nombres de los programadores y horas asignados a ellos. Esquema: vista6(descripción,nombre,horas).
+vista6 := project descripción, nombre, horas(select códigopr=código (proyectos product (select dni=dniemp (distribución product programadores))));
+select true (vista6);
+
+--7. Listado de teléfonos compartidos por empleados (sólo hay que indicar el número de teléfono). Esquema: vista7(teléfono). 
+-- Hemos hecho dos opciones
+--vista7(teléfono) := project analistas.teléfono (select programadores.teléfono=analistas.teléfono (programadores product analistas)) difference project teléfono (programadores intersect analistas);
+vista7 := project teléfono(rename analistas2(d, nom, dir, teléfono)(analistas) njoin programadores) difference project teléfono (programadores intersect analistas);
+select true (vista7);
+
+select true (vista1);
+select true (vista2); 
+select true (vista3); 
+select true (vista4); 
+select true (vista5); 
+select true (vista6); 
+select true (vista7); 
